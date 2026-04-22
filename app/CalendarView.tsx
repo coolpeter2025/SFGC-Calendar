@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import listPlugin from "@fullcalendar/list";
@@ -16,9 +17,25 @@ export interface FCEvent {
 }
 
 export default function CalendarView({ events }: { events: FCEvent[] }) {
+  const ref = useRef<FullCalendar>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const applyView = () => {
+      const api = ref.current?.getApi();
+      if (!api) return;
+      const target = mq.matches ? "listMonth" : "dayGridMonth";
+      if (api.view.type !== target) api.changeView(target);
+    };
+    applyView();
+    mq.addEventListener("change", applyView);
+    return () => mq.removeEventListener("change", applyView);
+  }, []);
+
   return (
-    <div className="rounded-lg border bg-white p-3 shadow-sm sm:p-5">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-5">
       <FullCalendar
+        ref={ref}
         plugins={[dayGridPlugin, listPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         headerToolbar={{
@@ -26,10 +43,16 @@ export default function CalendarView({ events }: { events: FCEvent[] }) {
           center: "title",
           right: "dayGridMonth,listMonth",
         }}
+        buttonText={{
+          today: "Today",
+          month: "Month",
+          list: "List",
+        }}
         events={events}
         height="auto"
         eventDisplay="block"
         dayMaxEventRows={3}
+        fixedWeekCount={false}
         eventDidMount={(info) => {
           info.el.style.cursor = "pointer";
           const loc = info.event.extendedProps?.location;
@@ -41,6 +64,11 @@ export default function CalendarView({ events }: { events: FCEvent[] }) {
             window.open(info.event.url, "_blank", "noopener,noreferrer");
           }
         }}
+        noEventsContent={() => (
+          <div className="py-10 text-center text-sm text-slate-400">
+            No events this month
+          </div>
+        )}
       />
     </div>
   );

@@ -15,8 +15,9 @@ export default async function HomePage() {
     events = await listInRange(rangeStart.toISOString(), rangeEnd.toISOString());
   } catch (err) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-        Couldn&apos;t load calendar: {(err as Error).message}
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+        <div className="font-medium">Couldn&apos;t load the calendar</div>
+        <div className="mt-1 text-red-700/80">{(err as Error).message}</div>
       </div>
     );
   }
@@ -31,5 +32,17 @@ export default async function HomePage() {
     extendedProps: { location: e.location },
   }));
 
-  return <CalendarView events={fcEvents} />;
+  return (
+    <div>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+          Events
+        </h1>
+        <p className="mt-1 text-sm text-slate-500 sm:text-base">
+          Services, ministries, and gatherings at SFGC
+        </p>
+      </div>
+      <CalendarView events={fcEvents} />
+    </div>
+  );
 }
