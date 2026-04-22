@@ -18,6 +18,11 @@ interface EditableEvent extends ParsedEvent {
   uid: string;
 }
 
+interface SkippedLine {
+  line: string;
+  reason: string;
+}
+
 function toLocalInput(iso: string, allDay: boolean): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -38,6 +43,7 @@ export default function SubmitPage() {
   const [text, setText] = useState("");
   const [password, setPassword] = useState("");
   const [events, setEvents] = useState<EditableEvent[] | null>(null);
+  const [skipped, setSkipped] = useState<SkippedLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successUrls, setSuccessUrls] = useState<string[]>([]);
@@ -46,10 +52,12 @@ export default function SubmitPage() {
     setLoading(true);
     setError("");
     setSuccessUrls([]);
+    setSkipped([]);
     try {
       const result = await parseEvent(text, password);
       if (!result.is_event || result.events.length === 0) {
         setError("Couldn't detect any events in that text. Edit and try again.");
+        if (result.skipped?.length) setSkipped(result.skipped);
         setLoading(false);
         return;
       }
@@ -61,6 +69,7 @@ export default function SubmitPage() {
           uid: `${Date.now()}-${i}`,
         })),
       );
+      setSkipped(result.skipped || []);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -116,6 +125,25 @@ export default function SubmitPage() {
           <a href={successUrls[0]} target="_blank" rel="noreferrer" className="font-medium underline">
             View first one
           </a>
+        </div>
+      )}
+
+      {skipped.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="mb-2 font-medium">
+            {skipped.length} line{skipped.length === 1 ? "" : "s"} skipped — needs a date:
+          </div>
+          <ul className="list-disc space-y-1 pl-5">
+            {skipped.map((s, i) => (
+              <li key={i}>
+                <span className="font-mono">{s.line}</span>
+                <span className="text-amber-700"> — {s.reason}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2 text-xs text-amber-700">
+            Add these manually once dates are confirmed.
+          </div>
         </div>
       )}
 
