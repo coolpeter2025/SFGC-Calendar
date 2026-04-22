@@ -1,6 +1,6 @@
 "use server";
 
-import { parseEventText, type ParsedEvent } from "@/lib/claude";
+import { parseEventsText, type ParsedEvents } from "@/lib/claude";
 import { createEvent as createCalendarEvent, type EventData } from "@/lib/google";
 
 function checkPassword(password: string) {
@@ -9,16 +9,21 @@ function checkPassword(password: string) {
   }
 }
 
-export async function parseEvent(text: string, password: string): Promise<ParsedEvent> {
+export async function parseEvent(text: string, password: string): Promise<ParsedEvents> {
   checkPassword(password);
   if (!text.trim()) throw new Error("Text is required");
-  return parseEventText(text);
+  return parseEventsText(text);
 }
 
-export async function createEvent(data: EventData, password: string): Promise<string> {
+export async function createEvents(events: EventData[], password: string): Promise<string[]> {
   checkPassword(password);
-  if (!data.title || !data.start_iso || !data.end_iso) {
-    throw new Error("Title, start, and end are required");
+  if (events.length === 0) throw new Error("No events to create");
+  const urls: string[] = [];
+  for (const ev of events) {
+    if (!ev.title || !ev.start_iso || !ev.end_iso) {
+      throw new Error(`Event is missing required fields`);
+    }
+    urls.push(await createCalendarEvent(ev));
   }
-  return createCalendarEvent(data);
+  return urls;
 }

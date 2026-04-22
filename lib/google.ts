@@ -7,6 +7,7 @@ export interface EventData {
   end_iso: string;
   location?: string;
   description?: string;
+  all_day?: boolean;
 }
 
 export interface UpcomingEvent {
@@ -14,6 +15,7 @@ export interface UpcomingEvent {
   summary: string;
   start: string;
   end: string;
+  allDay: boolean;
   location?: string;
   htmlLink: string;
 }
@@ -39,9 +41,30 @@ function calendarId(): string {
   return encodeURIComponent(process.env.GOOGLE_CALENDAR_ID || "primary");
 }
 
+function addDay(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export async function createEvent(ev: EventData): Promise<string> {
   const token = await getAccessToken();
   const tz = process.env.TIMEZONE || "America/New_York";
+
+  let start: Record<string, string>;
+  let end: Record<string, string>;
+
+  if (ev.all_day) {
+    const startDate = ev.start_iso.slice(0, 10);
+    const endDateRaw = ev.end_iso.slice(0, 10);
+    const endDate = endDateRaw && endDateRaw > startDate ? addDay(endDateRaw) : addDay(startDate);
+    start = { date: startDate };
+    end = { date: endDate };
+  } else {
+    start = { dateTime: ev.start_iso, timeZone: tz };
+    end = { dateTime: ev.end_iso, timeZone: tz };
+  }
+
   const resp = await fetch(`${API}/calendars/${calendarId()}/events`, {
     method: "POST",
     headers: {
@@ -52,8 +75,8 @@ export async function createEvent(ev: EventData): Promise<string> {
       summary: ev.title,
       location: ev.location,
       description: ev.description,
-      start: { dateTime: ev.start_iso, timeZone: tz },
-      end: { dateTime: ev.end_iso, timeZone: tz },
+      start,
+      end,
     }),
   });
   if (!resp.ok) throw new Error(`Calendar create ${resp.status}: ${await resp.text()}`);
@@ -61,10 +84,15 @@ export async function createEvent(ev: EventData): Promise<string> {
   return data.htmlLink;
 }
 
-export async function listUpcoming(max = 25): Promise<UpcomingEvent[]> {
+export async function listInRange(
+  startIso: string,
+  endIso: string,
+  max = 250,
+): Promise<UpcomingEvent[]> {
   const token = await getAccessToken();
   const params = new URLSearchParams({
-    timeMin: new Date().toISOString(),
+    timeMin: startIso,
+    timeMax: endIso,
     maxResults: String(max),
     singleEvents: "true",
     orderBy: "startTime",
@@ -80,6 +108,7 @@ export async function listUpcoming(max = 25): Promise<UpcomingEvent[]> {
     summary: e.summary || "(no title)",
     start: e.start?.dateTime || e.start?.date,
     end: e.end?.dateTime || e.end?.date,
+    allDay: !e.start?.dateTime,
     location: e.location,
     htmlLink: e.htmlLink,
   }));
