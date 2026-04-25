@@ -22,7 +22,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Saint Francis Grace · Community Calendar",
+  title: "SFGC · Community Calendar",
   description: "Services, ministries, and gatherings at SFGC",
 };
 
@@ -61,7 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
               <div className="leading-[1.05]">
                 <div className="font-serif text-[20px] font-semibold tracking-tight text-ink-800 sm:text-[22px]">
-                  Saint Francis Grace
+                  SFGC
                 </div>
                 <div className="mt-[3px] text-[10px] uppercase tracking-[0.22em] text-ink-500 sm:text-[11px]">
                   Community Calendar
@@ -104,7 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             deeds.&rdquo;
           </div>
           <div>
-            Saint Francis Grace Community · Auto-syncs to Google Calendar
+            SFGC · Auto-syncs to Google Calendar
           </div>
         </footer>
       </body>
