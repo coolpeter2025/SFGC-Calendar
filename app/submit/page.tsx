@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { parseEvent, createEvents } from "@/app/actions";
+import { categorize, CATEGORIES } from "@/lib/categories";
 
 interface ParsedEvent {
   title: string;
@@ -39,8 +40,40 @@ function fromLocalInput(v: string, allDay: boolean): string {
   return new Date(v).toISOString();
 }
 
+function fmtPretty(iso: string, allDay?: boolean) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  if (allDay)
+    return d.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  return d.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+const fieldStyle: React.CSSProperties = {
+  background: "#fbf6ec",
+  border: "1px solid rgba(89,75,56,0.18)",
+  borderRadius: 10,
+  color: "#2a2418",
+};
+
 const fieldCls =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-brand-800 focus:ring-2 focus:ring-brand-800/20";
+  "w-full px-3 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-ink-800/20";
+
+const pillBtn: React.CSSProperties = {
+  background: "#2a2418",
+  color: "#f0d9a8",
+  borderRadius: 999,
+  boxShadow: "inset 0 0 0 1px rgba(240,217,168,0.18)",
+};
 
 export default function SubmitPage() {
   const [text, setText] = useState("");
@@ -110,34 +143,72 @@ export default function SubmitPage() {
   }
 
   function updateEvent(uid: string, patch: Partial<EditableEvent>) {
-    setEvents((prev) => (prev ? prev.map((e) => (e.uid === uid ? { ...e, ...patch } : e)) : null));
+    setEvents((prev) =>
+      prev ? prev.map((e) => (e.uid === uid ? { ...e, ...patch } : e)) : null,
+    );
   }
 
   const selectedCount = events?.filter((e) => e.included).length || 0;
 
   return (
-    <div>
-      <div className="mb-6 sm:mb-8">
-        <h1 className="font-serif text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-          Submit an event
+    <div className="mx-auto max-w-[720px]">
+      <div className="mb-6">
+        <div className="mb-2.5 text-[11px] uppercase tracking-[0.25em] text-ink-400">
+          {events ? "Step 2 of 2" : "Step 1 of 2"}
+        </div>
+        <h1
+          className="m-0 font-serif text-[40px] font-normal leading-none tracking-tight text-ink-800 sm:text-[52px]"
+          style={{ letterSpacing: "-0.025em" }}
+        >
+          {events ? (
+            <>
+              Review your <span className="italic text-ink-500">events</span>
+            </>
+          ) : (
+            <>
+              Add an <span className="italic text-ink-500">event</span>
+            </>
+          )}
         </h1>
-        <p className="mt-1 text-sm text-slate-500 sm:text-base">
-          Paste a single event or a bulk schedule — we&apos;ll parse it and let you review before publishing.
+        <p className="mt-3.5 max-w-[560px] text-[15px] leading-[1.55] text-ink-500 sm:text-base">
+          {events
+            ? "Edit anything wrong. Uncheck what you don't want. We'll add the rest to the calendar."
+            : "Paste it however you have it — a one-liner from a text, a bullet list, a whole season at once. We'll tidy up the dates and let you review before it lands on the calendar."}
         </p>
       </div>
 
       {successUrls.length > 0 && (
-        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900 sm:p-5">
-          <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-green-600 text-white">
-            <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        <div
+          className="mb-5 flex items-start gap-3 rounded-2xl p-4 text-sm sm:p-5"
+          style={{
+            background: "rgba(21,128,61,0.08)",
+            border: "1px solid rgba(21,128,61,0.25)",
+            color: "#14532d",
+          }}
+        >
+          <span
+            className="mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-full text-white"
+            style={{ background: "#15803d" }}
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
           </span>
           <div className="flex-1">
             <div className="font-medium">
-              Added {successUrls.length} event{successUrls.length === 1 ? "" : "s"} to the calendar
+              Added {successUrls.length} event{successUrls.length === 1 ? "" : "s"} to the
+              calendar
             </div>
-            <a href={successUrls[0]} target="_blank" rel="noreferrer" className="mt-0.5 inline-block text-xs font-medium text-green-800 underline underline-offset-2 hover:text-green-900">
+            <a
+              href={successUrls[0]}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-0.5 inline-block text-xs font-medium underline underline-offset-2"
+            >
               View on Google Calendar →
             </a>
           </div>
@@ -145,151 +216,218 @@ export default function SubmitPage() {
       )}
 
       {skipped.length > 0 && (
-        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:p-5">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-amber-500 text-white">
-              <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.518 11.59c.75 1.334-.213 2.99-1.743 2.99H3.482c-1.53 0-2.493-1.656-1.743-2.99L8.257 3.099zM11 13a1 1 0 10-2 0 1 1 0 002 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </span>
-            <div className="flex-1">
-              <div className="font-medium">
-                {skipped.length} line{skipped.length === 1 ? "" : "s"} skipped — need a date
-              </div>
-              <ul className="mt-2 space-y-1 text-xs text-amber-800">
-                {skipped.map((s, i) => (
-                  <li key={i} className="rounded-md bg-amber-100/60 px-2 py-1">
-                    <span className="font-mono">{s.line}</span>
-                    <span className="ml-1 text-amber-700">— {s.reason}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 text-xs text-amber-700">
-                Add these manually once the dates are confirmed.
-              </p>
-            </div>
+        <div
+          className="mb-5 rounded-2xl p-4 text-sm sm:p-5"
+          style={{
+            background: "rgba(217,119,6,0.08)",
+            border: "1px solid rgba(217,119,6,0.25)",
+            color: "#7c2d12",
+          }}
+        >
+          <div className="font-medium">
+            {skipped.length} line{skipped.length === 1 ? "" : "s"} skipped — need a date
           </div>
+          <ul className="mt-2 space-y-1 text-xs">
+            {skipped.map((s, i) => (
+              <li
+                key={i}
+                className="rounded-md px-2 py-1"
+                style={{ background: "rgba(217,119,6,0.08)" }}
+              >
+                <span className="font-mono">{s.line}</span>
+                <span className="ml-1 opacity-80">— {s.reason}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
       {!events ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="space-y-5">
+        <div
+          className="rounded-[18px] border p-1.5"
+          style={{
+            background: "#fbf6ec",
+            borderColor: "rgba(89,75,56,0.18)",
+            boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
+          }}
+        >
+          <div className="rounded-[14px] bg-white px-6 py-5 sm:px-7 sm:py-6">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                Event details
+              <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-ink-500">
+                The event(s)
               </span>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                rows={10}
-                placeholder={`Single event:\nYouth group Fri Nov 14 at 7pm in Fellowship Hall\n\nOr a bulk schedule:\nApril 5 – Easter (no food)\nApril 12 – Bake Sale\nMay 16 – Men's Breakfast\nOctober 22–25 – Family Retreat`}
-                className={`${fieldCls} font-mono text-sm leading-relaxed`}
+                rows={9}
+                placeholder={`Choir rehearsal Thursday May 14 at 7pm in the Choir Room
+Men's Breakfast Sat May 30 8am — Fellowship Hall
+Family picnic Saturday May 16, 11am to 3pm at Memorial Park`}
+                className="mt-2.5 w-full resize-y px-4 py-4 font-mono text-[13.5px] leading-[1.6] text-ink-800 outline-none"
+                style={{
+                  background: "#fbf6ec",
+                  border: "1px dashed rgba(89,75,56,0.25)",
+                  borderRadius: 10,
+                  minHeight: 180,
+                }}
               />
-              <span className="mt-1.5 block text-xs text-slate-500">
-                Pastes in any format — one event or a full schedule. Dates without times become all-day events.
-              </span>
+              <div
+                className="mt-2 font-serif text-xs italic"
+                style={{ color: "#a8946d" }}
+              >
+                ✦ Multiple events on separate lines · dates without times become all-day
+              </div>
             </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Password</span>
+            <div className="mt-5 flex flex-wrap items-center gap-3.5">
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={fieldCls}
+                placeholder="Shared password"
                 autoComplete="current-password"
+                className="min-w-[200px] flex-1 px-3.5 py-3 text-sm outline-none"
+                style={fieldStyle}
               />
-            </label>
-
-            <div className="flex items-center gap-3 pt-1">
               <button
                 onClick={handleParse}
                 disabled={loading || !text || !password}
-                className="inline-flex items-center justify-center rounded-full bg-brand-800 px-6 py-2.5 text-sm font-medium text-white shadow-sm ring-1 ring-brand-900/10 transition hover:bg-brand-700 active:bg-brand-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="px-7 py-3 text-sm font-medium tracking-wide transition disabled:cursor-not-allowed disabled:opacity-50"
+                style={pillBtn}
               >
-                {loading ? "Parsing…" : "Preview events"}
+                {loading ? "Parsing…" : "Preview events →"}
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <span className="text-sm font-medium text-slate-700">
-              {selectedCount} of {events.length} selected
-            </span>
-            <div className="flex items-center gap-3 text-xs">
+        <div>
+          <div
+            className="mb-3.5 flex items-center justify-between text-[11px] uppercase tracking-[0.25em]"
+            style={{ color: "#a8946d" }}
+          >
+            <span>Preview · {events.length} event{events.length === 1 ? "" : "s"} found</span>
+            <span className="flex items-center gap-3 text-[12px] normal-case tracking-normal">
               <button
                 onClick={() => setEvents(events.map((e) => ({ ...e, included: true })))}
-                className="font-medium text-brand-800 hover:underline"
+                className="font-medium text-ink-700 hover:underline"
               >
                 All
               </button>
-              <span className="text-slate-300">|</span>
+              <span className="text-ink-400">|</span>
               <button
                 onClick={() => setEvents(events.map((e) => ({ ...e, included: false })))}
-                className="font-medium text-slate-500 hover:underline"
+                className="font-medium text-ink-500 hover:underline"
               >
                 None
               </button>
-            </div>
+            </span>
           </div>
 
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1 sm:max-h-[65vh]">
-            {events.map((ev) => (
-              <div
-                key={ev.uid}
-                className={`rounded-xl border transition ${
-                  ev.included
-                    ? "border-slate-200 bg-white"
-                    : "border-slate-100 bg-slate-50/50 opacity-60"
-                }`}
-              >
-                <div className="flex items-start gap-3 p-3 sm:p-4">
-                  <input
-                    type="checkbox"
-                    checked={ev.included}
-                    onChange={(e) => updateEvent(ev.uid, { included: e.target.checked })}
-                    className="mt-2 h-4 w-4 rounded border-slate-300 text-brand-800 focus:ring-brand-800"
-                  />
-                  <div className="flex-1 space-y-2.5">
+          <div className="flex flex-col gap-2.5">
+            {events.map((ev) => {
+              const cat = CATEGORIES[categorize(ev.title)];
+              return (
+                <details
+                  key={ev.uid}
+                  className="rounded-[14px] bg-white"
+                  style={{
+                    border: "1px solid rgba(89,75,56,0.18)",
+                    opacity: ev.included ? 1 : 0.55,
+                  }}
+                >
+                  <summary
+                    className="grid cursor-pointer items-center gap-3 px-5 py-4"
+                    style={{ gridTemplateColumns: "auto 1fr auto auto" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={ev.included}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        updateEvent(ev.uid, { included: e.target.checked })
+                      }
+                      className="h-[18px] w-[18px]"
+                      style={{ accentColor: "#2a2418" }}
+                    />
+                    <div>
+                      <div className="flex items-center gap-2.5 font-serif text-[19px] font-medium text-ink-800">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ background: cat.dot }}
+                        />
+                        {ev.title || "(untitled)"}
+                      </div>
+                      <div
+                        className="mt-1 font-serif text-[13px] italic text-ink-500"
+                      >
+                        {fmtPretty(ev.start_iso, ev.all_day)}
+                        {ev.location ? ` · ${ev.location}` : ""}
+                      </div>
+                    </div>
+                    <div
+                      className="rounded-full px-2.5 py-1 text-[11px]"
+                      style={{
+                        background: "#fbf6ec",
+                        color: cat.color,
+                        border: `1px solid ${cat.color}30`,
+                      }}
+                    >
+                      {cat.label}
+                    </div>
+                    <span className="text-[13px] text-ink-400">edit</span>
+                  </summary>
+
+                  <div
+                    className="space-y-3 border-t px-5 pb-5 pt-4"
+                    style={{ borderColor: "rgba(89,75,56,0.12)" }}
+                  >
                     <input
                       value={ev.title}
                       onChange={(e) => updateEvent(ev.uid, { title: e.target.value })}
                       placeholder="Title"
                       className={`${fieldCls} font-medium`}
+                      style={fieldStyle}
                     />
-                    <label className="flex items-center gap-2 text-xs text-slate-600">
+                    <label className="flex items-center gap-2 text-xs text-ink-500">
                       <input
                         type="checkbox"
                         checked={ev.all_day || false}
-                        onChange={(e) => updateEvent(ev.uid, { all_day: e.target.checked })}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-brand-800 focus:ring-brand-800"
+                        onChange={(e) =>
+                          updateEvent(ev.uid, { all_day: e.target.checked })
+                        }
+                        className="h-3.5 w-3.5"
+                        style={{ accentColor: "#2a2418" }}
                       />
                       All-day event
                     </label>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <label className="block text-xs text-slate-500">
+                      <label className="block text-xs text-ink-500">
                         <span className="mb-1 block">Start</span>
                         <input
                           type={ev.all_day ? "date" : "datetime-local"}
                           value={toLocalInput(ev.start_iso, !!ev.all_day)}
                           onChange={(e) =>
-                            updateEvent(ev.uid, { start_iso: fromLocalInput(e.target.value, !!ev.all_day) })
+                            updateEvent(ev.uid, {
+                              start_iso: fromLocalInput(e.target.value, !!ev.all_day),
+                            })
                           }
                           className={fieldCls}
+                          style={fieldStyle}
                         />
                       </label>
-                      <label className="block text-xs text-slate-500">
+                      <label className="block text-xs text-ink-500">
                         <span className="mb-1 block">End</span>
                         <input
                           type={ev.all_day ? "date" : "datetime-local"}
                           value={toLocalInput(ev.end_iso, !!ev.all_day)}
                           onChange={(e) =>
-                            updateEvent(ev.uid, { end_iso: fromLocalInput(e.target.value, !!ev.all_day) })
+                            updateEvent(ev.uid, {
+                              end_iso: fromLocalInput(e.target.value, !!ev.all_day),
+                            })
                           }
                           className={fieldCls}
+                          style={fieldStyle}
                         />
                       </label>
                     </div>
@@ -298,32 +436,40 @@ export default function SubmitPage() {
                       onChange={(e) => updateEvent(ev.uid, { location: e.target.value })}
                       placeholder="Location (optional)"
                       className={fieldCls}
+                      style={fieldStyle}
                     />
                     {ev.description && (
-                      <div className="rounded-md bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                      <div
+                        className="rounded-md px-2 py-1 text-xs text-ink-500"
+                        style={{ background: "#fbf6ec" }}
+                      >
                         {ev.description}
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-            ))}
+                </details>
+              );
+            })}
           </div>
 
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center">
             <button
               onClick={handleCreate}
               disabled={loading || selectedCount === 0}
-              className="inline-flex items-center justify-center rounded-full bg-brand-800 px-6 py-2.5 text-sm font-medium text-white shadow-sm ring-1 ring-brand-900/10 transition hover:bg-brand-700 active:bg-brand-900 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center px-8 py-3.5 text-[14.5px] font-medium tracking-wide disabled:cursor-not-allowed disabled:opacity-50"
+              style={pillBtn}
             >
-              {loading ? "Creating…" : `Add ${selectedCount} to calendar`}
+              {loading
+                ? "Adding…"
+                : `Add ${selectedCount} event${selectedCount === 1 ? "" : "s"} to calendar`}
             </button>
             <button
               onClick={() => {
                 setEvents(null);
                 setError("");
               }}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-full border bg-white px-6 py-3 text-sm font-medium text-ink-700"
+              style={{ borderColor: "rgba(89,75,56,0.25)" }}
             >
               Back
             </button>
@@ -332,7 +478,14 @@ export default function SubmitPage() {
       )}
 
       {error && (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <div
+          className="mt-5 rounded-xl p-3 text-sm"
+          style={{
+            background: "rgba(190,18,60,0.06)",
+            border: "1px solid rgba(190,18,60,0.25)",
+            color: "#7f1d1d",
+          }}
+        >
           {error}
         </div>
       )}
